@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>BiPitron Web App Test</title>
+    <link rel="stylesheet" type="text/css" href="css/main.css">
+</head>
+
+<body>
+    <div class="robot-status">
+        <h3>Параметры робота</h3>
+        <div class="status-text">Связь с роботом:</div>
+        <div class="status-dot status-red"></div>
+    </div>
+    <div class="model-parameters">
+        <h3>Параметры модели</h3>
+        <div class="model-selection">
+            <select id="modelSelect" class="model-dropdown">
+                <option value="">Выберите модель...</option>
+                <!-- Options will be populated via JavaScript -->
+            </select>
+            <button id="applyModel" class="apply-button">Применить</button>
+        </div>
+        <div class="current-model">
+            <div class="current-model-text">Текущая модель:</div>
+            <div id="currentModel" class="current-model-name"></div>
+        </div>
+    </div>
+    <div class="camera-parameters">
+        <h3>Параметры камеры</h3>
+        <div class="exposure-control">
+            <div class="exposure-input">
+                <label for="exposureValue">Экспозиция:</label>
+                <input type="number" id="exposureValue" min="162" max="900000" step="100">
+                <button id="applyExposure" class="apply-button">Применить</button>
+            </div>
+            <div class="current-exposure">
+                <div class="current-exposure-text">Текущая экспозиция:</div>
+                <div id="currentExposure" class="current-exposure-value">--</div>
+            </div>
+        </div>
+        <button id="calibrateCamera" class="calibrate-button">Калибровать</button>
+     </div>
+    <div class="image-container"></div>
+        <img src="http://localhost:8000/video_feed">
+    </div>
+</body>
+<script src="js/main.js"></script>
+
+</html>

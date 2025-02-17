@@ -1,0 +1,22 @@
+{
+    "class_names": [
+        "Rounds",
+        "Smalls",
+        "Longs"
+    ],
+    "models": {
+        "Rounds": "model_round.pt",
+        "Smalls": "model_small.pt",
+        "Longs": "model_long.pt"
+    },
+    "minimal_confidences": {
+        "Rounds": 0.75,
+        "Smalls": 0.75,
+        "Longs": 0.75
+    },
+    "model_type": {
+        "Rounds": "detect",
+        "Smalls": "pose",
+        "Longs": "pose"
+    }
+}

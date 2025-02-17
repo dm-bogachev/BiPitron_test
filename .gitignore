@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*$py.class
+db-data/*
+**/.venv/
+**/.linenv/
+#.vscode/*
+test.db
+test/*
+/test/*
+/build
+/dist
+*.png
