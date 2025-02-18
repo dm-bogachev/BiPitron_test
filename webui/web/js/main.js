@@ -1,6 +1,37 @@
 const ROBOT_API_URL = 'http://localhost:8000/robot';
 const VISION_API_URL = 'http://localhost:8000/vision';
 const FRAMEGRABBER_API_URL = 'http://localhost:8000/framegrabber';
+const LOGIC_API_URL = 'http://localhost:8000/logic';
+
+// Добавьте эту функцию в начало файла после объявления констант
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    
+    // Стили для уведомления
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.padding = '15px';
+    notification.style.borderRadius = '5px';
+    notification.style.backgroundColor = type === 'error' ? '#ff4444' : '#44ff44';
+    notification.style.color = '#fff';
+    notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+    notification.style.zIndex = '1000';
+    notification.style.transition = 'opacity 0.5s ease-in-out';
+    
+    document.body.appendChild(notification);
+    
+    // Автоматически удаляем уведомление через 3 секунды
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 500);
+    }, 3000);
+}
+
 // Function to fetch models from API
 async function fetchModels() {
     try {
@@ -32,13 +63,45 @@ async function loadCurrentModel() {
     }
 }
 
-// Load current model when page loads
-document.addEventListener('DOMContentLoaded', loadCurrentModel);
+document.getElementById('sendCommand').addEventListener('click', async () => {
+    console.log('Sending command to robot...');
+    try {
+        const response = await fetch(LOGIC_API_URL + '/next_object', {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+            }
+        });
+        console.log(response);
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Next object:', data);
+            const [class_id, , , [x, y, a]] = data;
+            const robotResponse = await fetch(`${ROBOT_API_URL}/pick?class_id=${class_id}&x=${x}&y=${y}&a=${a}`, {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+            }
+            });
+
+            if (robotResponse.ok) {
+                showNotification('Команда успешно отправлена роботу');
+            } else {
+                showNotification('Ошибка при отправке команды роботу', 'error');
+            }
+        } else {
+            showNotification('Ошибка при получении следующего объекта', 'error');
+        }
+    } catch (error) {
+        console.error('Error sending command to robot:', error);
+        showNotification('Ошибка при отправке команды роботу', 'error');
+    }
+});
 
 document.getElementById('applyModel').addEventListener('click', async () => {
     const selectedModel = document.getElementById('modelSelect').value;
     if (!selectedModel) {
-        alert('Пожалуйста, выберите модель');
+        showNotification('Пожалуйста, выберите модель', 'error');
         return;
     }
 
@@ -46,20 +109,19 @@ document.getElementById('applyModel').addEventListener('click', async () => {
         const response = await fetch(`${VISION_API_URL}/set_model?model=${selectedModel}`, {
             method: 'GET',
             headers: {
-            'Content-Type': 'application/json',
+                'Content-Type': 'application/json',
             }
         });
         
         if (response.ok) {
             document.getElementById('currentModel').textContent = selectedModel;
-            //alert('Модель успешно применена');
-            
+            await loadCurrentConfidence(); // Update confidence after model change
         } else {
-            alert('Ошибка при применении модели');
+            showNotification('Ошибка при применении модели', 'error');
         }
     } catch (error) {
         console.error('Error applying model:', error);
-        alert('Ошибка при применении модели');
+        showNotification('Ошибка при применении модели', 'error');
     }
 });
 
@@ -68,10 +130,139 @@ async function loadCurrentExposure() {
         const response = await fetch(FRAMEGRABBER_API_URL + '/get_exposure');
         const data = await response.json();
         document.getElementById('currentExposure').textContent = data.exposure;
+        document.getElementById('exposureValue').value = data.exposure;
     } catch (error) {
         console.error('Error loading current exposure:', error);
     }
 }
+
+async function loadCurrentConfidence() {
+    console.log('Loading current confidence...');
+    try {
+        while (!document.getElementById('currentModel').textContent) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        const currentModel = document.getElementById('currentModel').textContent;
+        console.log('Current model:', currentModel);
+        const response = await fetch(`${VISION_API_URL}/get_confidence?model=${currentModel}`, {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+            }
+        });
+        const data = await response.json();
+        console.log('Current confidence:', data.confidence);
+        document.getElementById('currentConfidence').textContent = data.confidence;
+        document.getElementById('confidenceValue').value = data.confidence;
+    } catch (error) {
+        console.error('Error loading current confidence:', error);
+    }
+}
+
+async function loadObjectList() {
+    console.log('Loading object list...');
+    try {
+        const response = await fetch(VISION_API_URL + '/get_objects');
+        const objects = await response.json();
+        console.log('Objects:', objects);
+        const objectList = document.getElementById('objectList');
+        objectList.innerHTML = ''; // Clear existing list
+
+        objects.forEach(obj => {
+            const listItem = document.createElement('li');
+            const [model, subclass, confidence, coordinates] = obj;
+            const [x, y, angle] = coordinates.length === 3 ? coordinates : [...coordinates, null];
+            listItem.innerHTML = `
+                <div style="border: 1px solid #000; padding: 5px; margin: 5px 0">
+                    <div>Модель: ${model}</div>
+                    <div>Подкласс: ${subclass}</div>
+                    <div>Вероятность: ${confidence}</div>
+                    <div>Координаты: (${x}, ${y})${angle !== null ? `, Угол: ${angle}` : ''}</div>
+                </div>
+            `;
+            objectList.appendChild(listItem);
+        });
+
+        // Update object count
+        const objectCount = objects.length;
+        const objectCountHeader = document.querySelector('.controls h3');
+        objectCountHeader.textContent = `Список объектов (Всего: ${objectCount})`;
+    } catch (error) {
+        console.error('Error loading object list:', error);
+    }
+}
+
+// document.addEventListener('DOMContentLoaded', loadObjectList);
+
+document.getElementById('getOKResponse').addEventListener('click', async () => {
+    try {
+        const response = await fetch(`${ROBOT_API_URL}/measurement?result=true`, {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+            }
+        });
+
+        if (response.ok) {
+            showNotification('Ответ OK успешно отправлен');
+        } else {
+            showNotification('Ошибка при отправке ответа OK', 'error');
+        }
+    } catch (error) {
+        console.error('Error sending OK response:', error);
+        showNotification('Ошибка при отправке ответа OK', 'error');
+    }
+});
+
+document.getElementById('getNGResponse').addEventListener('click', async () => {
+    try {
+        const response = await fetch(`${ROBOT_API_URL}/measurement?result=false`, {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+            }
+        });
+
+        if (response.ok) {
+            showNotification('Ответ NG успешно отправлен');
+        } else {
+            showNotification('Ошибка при отправке ответа OK', 'error');
+        }
+    } catch (error) {
+        console.error('Error sending NG response:', error);
+        showNotification('Ошибка при отправке ответа NG', 'error');
+    }
+});
+
+document.getElementById('applyConfidence').addEventListener('click', async () => {
+    const confidenceValue = document.getElementById('confidenceValue').value;
+    if (!confidenceValue || confidenceValue < 0 || confidenceValue > 1) {
+        showNotification('Пожалуйста, введите корректное значение уверенности (0-1)');
+        return;
+    }
+
+    try {
+        const currentModel = document.getElementById('currentModel').textContent;
+        const response = await fetch(`${VISION_API_URL}/set_confidence?model=${currentModel}&confidence=${confidenceValue}`, {
+            method: 'GET',
+            headers: {
+            'accept': 'application/json',
+            }
+        });
+
+        if (response.ok) {
+            document.getElementById('currentConfidence').textContent = confidenceValue;
+            // !!!
+            showNotification('Значение уверенности успешно применено');
+        } else {
+            showNotification('Ошибка при применении значения уверенности', 'error');
+        }
+    } catch (error) {
+        console.error('Error applying confidence:', error);
+        showNotification('Ошибка при применении значения уверенности', 'error');
+    }
+});
+
 
 document.getElementById('calibrateCamera').addEventListener('click', calibrateMarkers);
 async function calibrateMarkers() {
@@ -85,22 +276,43 @@ async function calibrateMarkers() {
 
         if (response.ok) {
             const data = await response.json();
-            alert('Калибровка успешно завершена: ' + JSON.stringify(data));
+            showNotification('Калибровка успешно завершена: ' + JSON.stringify(data));
         } else {
-            alert('Ошибка при калибровке маркеров');
+            showNotification('Ошибка при калибровке маркеров', 'error');
         }
     } catch (error) {
         console.error('Error calibrating markers:', error);
-        alert('Ошибка при калибровке маркеров');
+        showNotification('Ошибка при калибровке маркеров', 'error');
     }
 }
 
-document.getElementById('calibrateMarkers').addEventListener('click', calibrateMarkers);
+document.getElementById('resetCamera').addEventListener('click', async () => {
+    try {
+        const response = await fetch(FRAMEGRABBER_API_URL + '/uncalibrate', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (response.ok) {
+            showNotification('Сброс калибровки успешно завершен');
+        } else {
+            showNotification('Ошибка при сбросе калибровки', 'error');
+        }
+    } catch (error) {
+        console.error('Error uncalibrating camera:', error);
+        showNotification('Ошибка при сбросе калибровки', 'error');
+    }
+});
+
+
+//document.getElementById('calibrateMarkers').addEventListener('click', calibrateMarkers);
 
 document.getElementById('applyExposure').addEventListener('click', async () => {
     const exposureValue = document.getElementById('exposureValue').value;
     if (!exposureValue || exposureValue < 162 || exposureValue > 900000) {
-        alert('Пожалуйста, введите корректное значение экспозиции (162-900000)');
+        showNotification('Пожалуйста, введите корректное значение экспозиции (162-900000)');
         return;
     }
 
@@ -114,22 +326,149 @@ document.getElementById('applyExposure').addEventListener('click', async () => {
 
         if (response.ok) {
             document.getElementById('currentExposure').textContent = exposureValue;
-            alert('Экспозиция успешно применена');
+            // !!!
+            showNotification('Экспозиция успешно применена');
         } else {
-            alert('Ошибка при применении экспозиции');
+            showNotification('Ошибка при применении экспозиции', 'error');
         }
     } catch (error) {
         console.error('Error applying exposure:', error);
-        alert('Ошибка при применении экспозиции');
+        showNotification('Ошибка при применении экспозиции', 'error');
     }
 });
 
-// Load current exposure when page loads
+
+async function loadDisplaySettings() {
+    try {
+        const displayBoxResponse = await fetch(VISION_API_URL + '/get_display_box', {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+            }
+        });
+        const displayPoseResponse = await fetch(VISION_API_URL + '/get_display_pose', {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+            }
+        });
+        const displayCoordinatesResponse = await fetch(VISION_API_URL + '/get_display_coordinates', {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+            }
+        });
+        const displayConfidenceResponse = await fetch(VISION_API_URL + '/get_display_confidence', {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+            }
+        });
+        const displayBoxData = await displayBoxResponse.json();
+        const displayPoseData = await displayPoseResponse.json();
+        const displayCoordinatesData = await displayCoordinatesResponse.json();
+        const displayConfidenceData = await displayConfidenceResponse.json();
+
+        console.log('Display settings:', displayBoxData, displayPoseData, displayCoordinatesData, displayConfidenceData);
+
+        document.getElementById('displayBox').checked = displayBoxData.display_box;
+        document.getElementById('displayPose').checked = displayPoseData.display_pose;
+        document.getElementById('displayCoordinates').checked = displayCoordinatesData.display_coordinates;
+        document.getElementById('displayConfidence').checked = displayConfidenceData.display_confidence;
+    } catch (error) {
+        console.error('Error loading display settings:', error);
+    }
+}
+
+document.getElementById('displayBox').addEventListener('change', async (event) => {
+    try {
+        const response = await fetch(`${VISION_API_URL}/set_display_box?display_box=${event.target.checked}`, {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+            }
+        });
+
+        if (response.ok) {
+            showNotification('Параметр отображения рамки успешно изменен');
+        } else {
+            showNotification('Ошибка при изменении параметра отображения рамки', 'error');
+        }
+    } catch (error) {
+        console.error('Error changing display box parameter:', error);
+        showNotification('Ошибка при изменении параметра отображения рамки', 'error');
+    }
+});
+
+document.getElementById('displayPose').addEventListener('change', async (event) => {
+    try {
+        const response = await fetch(`${VISION_API_URL}/set_display_pose?display_pose=${event.target.checked}`, {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+            }
+        });
+
+        if (response.ok) {
+            showNotification('Параметр отображения позы успешно изменен');
+        } else {
+            showNotification('Ошибка при изменении параметра отображения позы', 'error');
+        }
+    } catch (error) {
+        console.error('Error changing display pose parameter:', error);
+        showNotification('Ошибка при изменении параметра отображения позы', 'error');
+    }
+});
+
+document.getElementById('displayCoordinates').addEventListener('change', async (event) => {
+    try {
+        const response = await fetch(`${VISION_API_URL}/set_display_coordinates?display_coordinates=${event.target.checked}`, {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+            }
+        });
+
+        if (response.ok) {
+            showNotification('Параметр отображения координат успешно изменен');
+        } else {
+            showNotification('Ошибка при изменении параметра отображения координат', 'error');
+        }
+    } catch (error) {
+        console.error('Error changing display coordinates parameter:', error);
+        showNotification('Ошибка при изменении параметра отображения координат', 'error');
+    }
+});
+
+document.getElementById('displayConfidence').addEventListener('change', async (event) => {
+    try {
+        const response = await fetch(`${VISION_API_URL}/set_display_confidence?display_confidence=${event.target.checked}`, {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+            }
+        });
+
+        if (response.ok) {
+            showNotification('Параметр отображения уверенности успешно изменен');
+        } else {
+            showNotification('Ошибка при изменении параметра отображения уверенности', 'error');
+        }
+    } catch (error) {
+        console.error('Error changing display confidence parameter:', error);
+        showNotification('Ошибка при изменении параметра отображения уверенности', 'error');
+    }
+});
+
+document.addEventListener('DOMContentLoaded', loadDisplaySettings);
+document.addEventListener('DOMContentLoaded', loadCurrentModel);
 document.addEventListener('DOMContentLoaded', loadCurrentExposure);
+document.addEventListener('DOMContentLoaded', loadCurrentConfidence);
 
 // Fetch models when page loads
 document.addEventListener('DOMContentLoaded', fetchModels);
 setInterval(() => {
+    loadObjectList();
     const robot_status = document.querySelector('.robot-status .status-dot');
     console.log("Checking robot connection...");
     fetch(ROBOT_API_URL + '/connection')

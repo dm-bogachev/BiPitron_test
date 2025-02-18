@@ -19,6 +19,10 @@ class VisionConfig:
         except FileNotFoundError:
             logger.error('Config file not found')
             self.__config = {}
+            self.__config['display_box'] = True
+            self.__config['display_pose'] = True
+            self.__config['display_coordinates'] = True
+            self.__config['display_confidence'] = True
             self.__config['class_names'] = ["Rounds", "Smalls", "Longs"]
             self.__config['models'] = {"Rounds": "model_round.pt", "Smalls": "model_small.pt", "Longs": "model_long.pt"}    
             self.__config['minimal_confidences'] =  {"Rounds": 0.75, "Smalls": 0.75, "Longs": 0.75}

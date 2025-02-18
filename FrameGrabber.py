@@ -26,6 +26,10 @@ class FrameGrabber:
 
         self.aruco = ArucoDetector()
 
+    def uncalibrate(self):
+        self.M = None
+        logger.info('Calibration data removed')
+
     def calibrate(self):
         logger.info('Begin calibration')
         gray = self.camera.get_frame()
@@ -57,8 +61,21 @@ class FrameGrabber:
         try:
             h,  w = frame.shape[:2]
             result = cv2.warpPerspective(frame, self.M, [self.config['markers_x_distance'], self.config['markers_y_distance']])
+            markers = self.aruco.detectMarkers(result)
+            for id, marker in markers.items():
+                cv2.drawMarker(result, marker.center, COLOR_PINK, cv2.MARKER_CROSS, 15, 8)
+                points = np.array([marker.topLeft, marker.topRight, marker.bottomRight, marker.bottomLeft], np.int32)
+                points = points.reshape((-1, 1, 2))
+                cv2.polylines(result, [points], isClosed=True, color=COLOR_PINK, thickness=2)
+
             return result
         except Exception:
+            markers = self.aruco.detectMarkers(frame)
+            for id, marker in markers.items():
+                cv2.drawMarker(frame, marker.center, COLOR_PINK, cv2.MARKER_CROSS, 15, 8)
+                points = np.array([marker.topLeft, marker.topRight, marker.bottomRight, marker.bottomLeft], np.int32)
+                points = points.reshape((-1, 1, 2))
+                cv2.polylines(frame, [points], isClosed=True, color=COLOR_PINK, thickness=2)
             return frame
 
 

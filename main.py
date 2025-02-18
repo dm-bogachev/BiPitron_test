@@ -37,6 +37,12 @@ def generate_frames():
 def video_feed():
     return StreamingResponse(generate_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
 
+# Logic API
+@app.get("/logic/next_object")
+def next_object():
+    a = logic.next_object()
+    return logic.next_object()
+
 # Vision API
 @app.get("/vision/get_models")
 def get_models():
@@ -54,6 +60,13 @@ def set_model(model: str):
 def get_model():
     return {"model": logic.v.current_model}
 
+@app.get("/vision/get_confidence")
+def get_confidence(model: str):
+    if model in logic.v.get_models():
+        return {"confidence": logic.v.config['minimal_confidences'][model]}
+    else:
+        return {"error": "Model not found"}
+
 @app.get("/vision/set_confidence")
 def set_confidence(model: str, confidence: float):
     if model in logic.v.get_models():
@@ -65,6 +78,63 @@ def set_confidence(model: str, confidence: float):
 @app.get("/vision/get_objects")
 def get_objects():
     return logic.objects
+
+@app.get("/vision/get_display_box")
+def get_display_box():
+    return {"display_box": logic.v.config['display_box']}
+
+@app.get("/vision/set_display_box")
+def set_display_box(display_box: bool):
+    logic.v.config['display_box'] = display_box
+    return {"display_box": display_box}
+
+@app.get("/vision/get_display_pose")
+def get_display_pose():
+    return {"display_pose": logic.v.config['display_pose']}
+
+@app.get("/vision/set_display_pose")
+def set_display_pose(display_pose: bool):
+    logic.v.config['display_pose'] = display_pose
+    return {"display_pose": display_pose}
+
+@app.get("/vision/get_display_coordinates")
+def get_display_coordinates():
+    return {"display_coordinates": logic.v.config['display_coordinates']}
+
+@app.get("/vision/set_display_coordinates")
+def set_display_coordinates(display_coordinates: bool):
+    logic.v.config['display_coordinates'] = display_coordinates
+    return {"display_coordinates": display_coordinates}
+
+@app.get("/vision/get_display_confidence")
+def get_display_confidence():
+    return {"display_confidence": logic.v.config['display_confidence']}
+
+@app.get("/vision/set_display_confidence")
+def set_display_confidence(display_confidence: bool):
+    logic.v.config['display_confidence'] = display_confidence
+    return {"display_confidence": display_confidence}
+
+    # @app.get("/vision/get_display_config")
+    # def get_display_config():
+    #     return {
+    #         "display_box": logic.v.config['display_box'],
+    #         "display_pose": logic.v.config['display_pose'],
+    #         "display_coordinates": logic.v.config['display_coordinates'],
+    #         "display_confidence": logic.v.config['display_confidence']
+    #     }
+
+    # @app.post("/vision/set_display_config")
+    # def set_display_config(display_box: bool = None, display_pose: bool = None, display_coordinates: bool = None, display_confidence: bool = None):
+    #     if display_box is not None:
+    #         logic.v.config['display_box'] = display_box
+    #     if display_pose is not None:
+    #         logic.v.config['display_pose'] = display_pose
+    #     if display_coordinates is not None:
+    #         logic.v.config['display_coordinates'] = display_coordinates
+    #     if display_confidence is not None:
+    #         logic.v.config['display_confidence'] = display_confidence
+    #     return {"display_config_updated": True}
 
 # FrameGrabber API
 @app.get("/framegrabber/set_exposure")
@@ -108,14 +178,22 @@ def calibrate():
     logic.fg.calibrate()
     return {"calibrated": True}
 
+@app.get("/framegrabber/uncalibrate")
+def uncalibrate():
+    logic.fg.uncalibrate()
+    return {"calibrated": False}
+
 # Robot API
 @app.get("/robot/connection")
 def robot_status():
     return {"connected": logic.robot.connection.connected}
 
 @app.get("/robot/pick")
-def robot_pick(x: int, y: int, class_id: int):
-    return logic.robot.send_pick((x, y), class_id)
+def robot_pick(class_id: str, x: float, y: float, a: float = None):
+    if a is not None:
+        return logic.robot.send_pick(class_id, (x, y, a))
+    else:
+        return logic.robot.send_pick(class_id, (x, y) )
 
 @app.get("/robot/measurement")
 def robot_measurement(result: bool):

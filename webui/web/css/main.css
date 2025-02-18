@@ -35,6 +35,29 @@ body {
     white-space: nowrap;
 }
 
+.settings {
+    margin: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 15px;
+    flex-shrink: 0;  /* Prevents the settings from shrinking */
+}
+
+.controls {
+    margin: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 15px;
+    flex: 1;         /* Takes up remaining space */
+    margin-left: 20px; /* Adds some spacing between settings and controls */
+}
+
 .model-parameters {
     margin: 20px;
     display: flex;
@@ -61,6 +84,20 @@ body {
     min-width: 200px;
 }
 
+.red-button {
+    padding: 8px 16px;
+    font-size: 16px;
+    background-color: #bd4426;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.red-button:hover {
+    background-color: #d83f19;
+}
+
 .apply-button {
     padding: 8px 16px;
     font-size: 16px;
@@ -73,6 +110,27 @@ body {
 
 .apply-button:hover {
     background-color: #45a049;
+}
+
+.current-confidence {
+    margin: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.current-confidence-text {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 20px;
+    color: #333;
+    white-space: nowrap;
+}
+
+.current-confidence-val {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 20px;
+    color: #333;
+    font-weight: bold;
 }
 
 .current-model {
@@ -113,14 +171,15 @@ body {
 .exposure-control {
     margin: 20px;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
+    margin-bottom: 10px;
 }
 
 .exposure-input {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
 }
 
 .exposure-input input {
@@ -142,6 +201,14 @@ body {
     font-weight: bold;
 }
 
+.exposure-text {
+    min-width: 100px;
+}
+
+.calibration-control {
+    margin-top: 10px;
+}
+
 .calibrate-button {
     background-color: #4CAF50;
     color: white;
@@ -153,4 +220,90 @@ body {
 
 .calibrate-button:hover {
     background-color: #45a049;
+}
+
+.uncalibrate-button {
+    background-color: #bd4426;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.uncalibrate-button:hover {
+    background-color: #d83f19;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.notification {
+    animation: slideIn 0.3s ease-out;
+}
+
+.notification.error {
+    background-color: #ff4444 !important;
+}
+
+.notification.info {
+    background-color: #44ff44 !important;
+}
+.display-parameters {
+    margin: 20px;
+    gap: 10px;
+    align-items: left;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.display-parameters h3 {
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+.display-control {
+    margin: 20px;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+}
+
+.display-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.display-input input {
+    width: 100px;
+    padding: 5px;
+}
+
+.current-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.current-display-text {
+    color: #666;
+}
+
+.current-display-value {
+    font-weight: bold;
+}
+
+.display-text {
+    min-width: 100px;
 }

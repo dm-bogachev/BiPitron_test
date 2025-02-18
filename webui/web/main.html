@@ -7,42 +7,96 @@
 </head>
 
 <body>
-    <div class="robot-status">
-        <h3>Параметры робота</h3>
-        <div class="status-text">Связь с роботом:</div>
-        <div class="status-dot status-red"></div>
-    </div>
-    <div class="model-parameters">
-        <h3>Параметры модели</h3>
-        <div class="model-selection">
-            <select id="modelSelect" class="model-dropdown">
-                <option value="">Выберите модель...</option>
-                <!-- Options will be populated via JavaScript -->
-            </select>
-            <button id="applyModel" class="apply-button">Применить</button>
-        </div>
-        <div class="current-model">
-            <div class="current-model-text">Текущая модель:</div>
-            <div id="currentModel" class="current-model-name"></div>
-        </div>
-    </div>
-    <div class="camera-parameters">
-        <h3>Параметры камеры</h3>
-        <div class="exposure-control">
-            <div class="exposure-input">
-                <label for="exposureValue">Экспозиция:</label>
-                <input type="number" id="exposureValue" min="162" max="900000" step="100">
-                <button id="applyExposure" class="apply-button">Применить</button>
+    <div style="display: flex; flex-direction: row;">
+        <div class="settings">
+            <!--   -->
+            <div class="robot-status">
+                <h3>Параметры робота</h3>
+                <div class="status-text">Связь с роботом:</div>
+                <div class="status-dot status-red"></div>
             </div>
-            <div class="current-exposure">
-                <div class="current-exposure-text">Текущая экспозиция:</div>
-                <div id="currentExposure" class="current-exposure-value">--</div>
+            <div class="model-parameters">
+                <h3>Параметры модели</h3>
+                <div class="model-selection">
+                    <select id="modelSelect" class="model-dropdown">
+                        <option value="">Выберите модель...</option>
+                        <!-- Options will be populated via JavaScript -->
+                    </select>
+                    <button id="applyModel" class="apply-button">Применить</button>
+                </div>
+                <div style="display: flex; flex-direction: column;">
+                    <div class="current-model">
+                        <div class="current-model-text">Текущая модель:</div>
+                        <div id="currentModel" class="current-model-name"></div>
+                    </div>
+                    <div class="current-confidence">
+                        <div class="current-confidence-text">Текущий допуск:</div>
+                        <div id="currentConfidence" class="current-confidence-val">None</div>
+                        <input type="number" id="confidenceValue" min="0.01" max="1" step="0.05">
+                        <button id="applyConfidence" class="apply-button">Применить</button>
+
+                    </div>
+                </div>
+            </div>
+            <div class="camera-parameters">
+                <h3>Параметры камеры</h3>
+                <div style="display: flex; flex-direction: row;">
+                    <div class="exposure-control">
+                        <div class="exposure-input">
+                            <label for="exposureValue">Экспозиция:</label>
+                            <input type="number" id="exposureValue" min="162" max="900000" step="100">
+                            <button id="applyExposure" class="apply-button">Применить</button>
+                        </div>
+                        <div class="current-exposure">
+                            <div class="current-exposure-text">Текущая экспозиция:</div>
+                            <div id="currentExposure" class="current-exposure-value">--</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: row; gap: 10px;">
+                        <button id="calibrateCamera" class="calibrate-button">Калибровать</button>
+                        <button id="resetCamera" class="uncalibrate-button">Сбросить</button>
+                    </div>
+                </div>
+            </div>
+            <div class="display-parameters">
+                <h3>Параметры отображения</h3>
+                <div class="display-options">
+                    <label style="display: block;"></label>
+                        <input type="checkbox" id="displayBox" checked>
+                        Отображать рамку
+                    </label>
+                    <label style="display: block;"></label>
+                        <input type="checkbox" id="displayPose" checked>
+                        Отображать позу
+                    </label>
+                    <label style="display: block;"></label>
+                        <input type="checkbox" id="displayCoordinates" checked>
+                        Отображать координаты
+                    </label>
+                    <label style="display: block;"></label>
+                        <input type="checkbox" id="displayConfidence" checked>
+                        Отображать уверенность
+                    </label>
+                </div>
             </div>
         </div>
-        <button id="calibrateCamera" class="calibrate-button">Калибровать</button>
-     </div>
-    <div class="image-container"></div>
-        <img src="http://localhost:8000/video_feed">
+        <div class="controls" style="flex: 1;">
+            <div style="display: flex; gap: 10px; flex-direction: column;">
+                <button style=" min-height: 80px;" id="sendCommand" class="apply-button">Команда роботу</button>
+                <button style=" min-height: 80px;" id="getOKResponse" class="apply-button">Ответ от ИМ ОК</button>
+                <button style=" min-height: 80px;" id="getNGResponse" class="red-button">Ответ от ИМ NG</button>
+
+            </div>
+            <h3>Список объектов</h3>
+            <div class="object-list" style="overflow-y: auto; max-height: 400px;">
+                <ul id="objectList"></ul>
+                <!-- Items will be populated via JavaScript -->
+            </div>
+        </div>
+    </div>
+    <!--   -->
+    <div class="image-container" style="width: 100%; display: flex; justify-content: center;"></div>
+    <img src="http://localhost:8000/video_feed" style="width: 100%; max-width: 100%;">
     </div>
 </body>
 <script src="js/main.js"></script>

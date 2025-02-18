@@ -2,6 +2,9 @@
 0,14,"tcp.ip","IP:","",10,9,0
 1,8,"tcp.port","Port:","",10,9,5,1,0
 6,10,"Execute ","autostart","","",10,4,9,1,"PCEXEC autostart.pc",0
+7,8,"speed1","SPEED 1","",10,9,4,2,0
+8,8,"speed2","SPEED 2","",10,9,4,2,0
+9,8,"speedmm","SPEED MM","",10,9,4,2,0
 13,10,"Abort","autostart","","",10,4,9,2,"PCABORT",0
 21,8,"tyterm","Terminal","",10,15,2,1,0
 .END
@@ -25,6 +28,144 @@
 .END
 .INTER_PANEL_COLOR_D
 182,3,224,244,28,159,252,255,251,255,0,31,2,241,52,219,
+.END
+.PROGRAM motion ()
+  SPEED speed1 ALWAYS
+  skip = 0
+  allow.motion = FALSE
+  shiftz = 0
+  extrax = 0
+  shiftz = -12
+  POINT toola = TRANS (0.9, -6.5, 85.0, 90, 180, 0)
+  CP ON
+  SPEED speed1 ALWAYS
+  ACCURACY 25 ALWAYS
+  LMOVE #start
+  WHILE TRUE DO
+    IF allow.motion THEN
+      allow.motion = FALSE
+      IF $class == "Rounds" THEN
+        TOOL toola
+      END
+      IF $class == "Longs" THEN
+        IF a == 0 THEN
+          extrax = -3
+        ELSE
+          extrax = 5
+        END
+        TOOL toola
+      END
+      IF $class == "Smalls" THEN
+        TOOL toola
+      END
+      LMOVE #pre.tare
+      OPENI 2
+      LMOVE f + TRANS (y + extrax, x , 50 + shiftz) + RZ (-a)
+      BREAK
+      CP OFF
+      SPEED speedmm MM/S
+      ACCURACY 0
+      LMOVE f + TRANS (y + extrax, x, shiftz) + RZ (-a)
+      CLOSEI 2
+      BREAK
+      TWAIT 0.5
+      SPEED speed2
+      LMOVE f + TRANS (y, x + extrax, 50 + shiftz) + RZ (-a)
+      CP ON
+      LMOVE #pre.tare
+      IF $class == "Rounds" THEN
+        LMOVE #pos.longs.up
+        CP OFF
+        SPEED speedmm MM/S
+        ACCURACY 0
+        LMOVE #pos.longs
+        OPENI 2
+        BREAK
+        TWAIT 1
+        CLOSEI 2
+        TWAIT 0.5
+        SPEED speed2
+        CP ON
+        LMOVE #pos.longs.up
+        LMOVE #longs.machine.up
+        CP OFF
+        SPEED speedmm MM/S
+        ACCURACY 0
+        LMOVE #longs.machine
+        OPENI 2
+        TWAIT 1
+        SPEED speed2
+        LMOVE #longs.machine.up
+        WAIT skip <> 0
+        SPEED speedmm MM/S
+        ACCURACY 0
+        LMOVE #longs.machine
+        CLOSEI 2
+        TWAIT 0.5
+        SPEED speed2
+        LMOVE #longs.machine.up
+        IF skip == 1 THEN
+          LMOVE #longs.ok
+        ELSE
+          LMOVE #longs.ng
+        END
+        skip = 0
+        OPENI 2
+        TWAIT 0.5
+        LMOVE #start
+      END
+      IF $class == "Longs" THEN
+        LMOVE #pos.longs.up
+        LMOVE #pos.longs
+        OPENI 2
+        BREAK
+        TWAIT 1
+        CLOSEI 2
+        TWAIT 0.5
+        LMOVE #pos.longs.up
+        LMOVE #longs.machine.up
+        LMOVE #longs.machine
+        OPENI 2
+        TWAIT 1
+        LMOVE #longs.machine.up
+        WAIT skip <> 0
+        LMOVE #longs.machine
+        CLOSEI 2
+        TWAIT 0.5
+        LMOVE #longs.machine.up
+        IF skip == 1 THEN
+          LMOVE #longs.ok
+        ELSE
+          LMOVE #longs.ng
+        END
+        skip = 0
+        OPENI 2
+        TWAIT 0.5
+        LMOVE #start
+      END
+      IF $class == "Smalls" THEN
+        a = 0
+        ;TOOL toola
+      END
+      LMOVE #start
+    END
+  END
+.END
+.PROGRAM calibrate ()
+
+  LMOVE f0
+  LMOVE fx
+  LMOVE fy
+  ;
+  POINT f = FRAME(f0, fx, fy, f0)
+  ;
+  LMOVE f + TRANS(286, 410)
+  LMOVE f + TRANS(0, 410)
+  LMOVE f + TRANS(286, 0)
+  LMOVE f + TRANS(0, 0)
+  ;
+  LMOVE f + TRANS(y, x, 20)
+  LMOVE f + TRANS(183, 143.2, 20)
 .END
 .PROGRAM tcp.client.pc ()
   DO
@@ -128,23 +269,48 @@
   END
   ;
   $type = ""
-  IF INSTR (.$data[1], ";") <> 0 THEN
-    $type = $DECODE (.$data[1], ";", 0)
-    .$temp = $DECODE (.$data[1], ";", 1)
+  IF INSTR (.$data[1], ",") <> 0 THEN
+    $type = $DECODE (.$data[1], ",", 0)
+    .$temp = $DECODE (.$data[1], ",", 1)
   ELSE
     $type = .$data[1]
   END
   ;
   SCASE $type OF
     SVALUE "PICK":
+      PRINT tyterm: .$data[1]
       ;CALL parse.cmd.pc (.$data[], .data.length)
-      PRINT tyterm: "PICK"
+      ; Parse class of data
+      $class = $DECODE (.$data[1], ",", 0)
+      .$temp = $DECODE (.$data[1], ",", 1)
+      ; Parse number of data
+      $type = $DECODE (.$data[1], ",", 0)
+      .$temp = $DECODE (.$data[1], ",", 1)
+      ; Parse X
+      $x = $DECODE (.$data[1], ",", 0)
+      .$temp = $DECODE (.$data[1], ",", 1)
+      x = VAL ($x)
+      ; Parse Y
+      $y = $DECODE (.$data[1], ",", 0)
+      .$temp = $DECODE (.$data[1], ",", 1)
+      y = VAL ($y)
+      ; Parse A
+      $a = $DECODE (.$data[1], ",", 0)
+      a = VAL ($a)
+      PRINT tyterm: $class, x, y, a
+      allow.motion = TRUE
+      .$data[1] = "ALIVE"
+      CALL tcp.send.pc (.$data[], 1)
       RETURN
     SVALUE "MEASUREMENT":
-      PRINT tyterm: "MEASUREMENT"
+      IF .$data[1] == " OK" THEN
+        skip = 1
+      ELSE
+        skip = 2
+      END
       ;CALL parse.motion.pc (.$data[], .data.length)
       RETURN
-
+      
   END
   ;
   PRINT tyterm: "Unhandled message. Return ALIVE"
@@ -201,6 +367,8 @@
 	; 192.168.0.2
 	; 23
 	; @@@ PROGRAM @@@
+	; 0:motion:F
+	; 0:calibrate:F
 	; Group:TCPIP:1
 	; 1:tcp.client.pc:B
 	; .number 
@@ -242,8 +410,27 @@
 	; SIGNAME: sig1 sig2 sig3 sig4
 	; SIGDIM: % % % %
 .END
+.JOINTS
+#start 16.935207 -8.928955 -142.506897 0.432422 -46.324539 -14.192482
+#pre.tare 12.028270 43.876831 -74.849274 0.000880 -61.274872 -11.075840
+#pos.longs -9.564698 33.646362 -106.934273 2.620020 -60.759205 5.005275
+#pos.longs.up -9.219728 29.253662 -100.866653 2.284277 -71.221619 5.233283
+#machine.up 23.900537 27.906740 -115.699707 68.160065 -101.928413 29.312017
+#machine 23.900537 46.515015 -113.202690 65.858208 -95.598915 14.311533
+#ok 31.955280 39.942261 -109.067627 -3.841700 -33.355869 -31.666140
+#ng 47.923241 29.784300 -129.056671 -6.845800 -22.939449 -44.537041
+#longs.machine.up 4.877930 9.679320 -116.947750 -0.998440 -56.388020 -7.264720
+#longs.machine 5.176320 26.137569 -122.273323 -1.489750 -34.609680 -6.889580
+#longs.ok 31.956150 39.942261 -109.067177 -3.841700 -33.355869 -31.666140
+#longs.ng 47.924129 29.784300 -129.056213 -6.845800 -22.939449 -44.537041
+#drop 29.625290 34.349491 -110.810089 0.569530 -34.822540 154.066864
+#longs.machine.u 4.877930 9.679321 -116.947754 -0.998438 -56.388016 -7.264723
+#nullp 39.517384 31.322756 -94.699982 -117.035172 122.891006 344.040375
+#pre 9.166110 37.979740 -81.726318 0.343650 -60.154953 174.817657
+#rtchome1 -14.592921 -20.513672 -122.979691 5.037891 -76.092690 108.189819
+.END
 .REALS
-tyterm = 0
+tyterm = 1
 tcp.port = 48569
 tcp.connect.tmo = 5
 tcp.receive.tmo = 5
@@ -251,18 +438,57 @@ tcp.send.tmo = 5
 tcp.retry.count = 5
 tcp.abort = 0
 a.value = 0
-ip[1] = 127
-ip[2] = 0
+ip[1] = 192
+ip[2] = 168
 ip[3] = 0
-ip[4] = 1
+ip[4] = 163
 o.value = 0
 t.value = 1
 tcp.error.cnt = 0
-tcp.socket = 456
+tcp.socket = 36
 x.value = 0.5
 y.value = 0
 z.value = 0
 motion.enable = 0
+a = 0
+active = -1
+allow.motion = 0
+angel = 0
+clamp_open = 1009
+clport = 48569
+coord_add = 2002
+debug = -1
+deltax = 200
+erx = -34009
+extrax = 0
+flagx = 0
+is_moving = 2003
+jt1.value = 40.76
+jt2.value = 14.94
+jt3.value = -128.81
+jt4.value = -122.94
+jt5.value = 109.19
+jt6.value = 311.64
+mjoint.enable = 0
+mtdraw.enable = 0
+num = 0
+rc = -34025
+sh = 10
+shiftz = -12
+skip = 0
+socket_id = -34024
+socketid = 36
+speed1 = 30
+speed2 = 10
+speedmm = 50
+tcp_conn_time = 10
+tcp_port = 48569
+tcp_recv_time = 15
+tcp_send_time = 10
+tool.value = 680
+upd.tool = 0
+x = 105.5
+y = 116
 .END
 .STRINGS
 $tcp.ip = "127.0.0.1"

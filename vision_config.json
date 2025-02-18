@@ -1,4 +1,8 @@
 {
+    "display_box": true,
+    "display_pose": true,
+    "display_coordinates": true,
+    "display_confidence": true,
     "class_names": [
         "Rounds",
         "Smalls",

@@ -73,9 +73,13 @@ class Robot(Thread):
             self._request_pending = False
             return None
 
-    def send_pick(self, coordinates, class_id):
-        x, y = coordinates
-        return self.__send_command(f'PICK,{x},{y},{class_id}')
+    def send_pick(self, model, coordinates):
+        if len(coordinates) == 2:
+            x, y = coordinates
+            return self.__send_command(f'PICK,{model},{2},{x},{y}')
+        else:
+            x, y, a = coordinates
+            return self.__send_command(f'PICK,{model},{3},{x},{y},{a}')
 
     def send_measurement_request(self, measurement_result):
         if measurement_result:
