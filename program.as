@@ -35,8 +35,10 @@
   allow.motion = FALSE
   shiftz = 0
   extrax = 0
+  extray = -2
   shiftz = -12
   POINT toola = TRANS (0.9, -6.5, 85.0, 90, 180, 0)
+  POINT toolb = TRANS (0, -2, 95, 90, 180, 0)
   CP ON
   SPEED speed1 ALWAYS
   ACCURACY 25 ALWAYS
@@ -45,9 +47,12 @@
     IF allow.motion THEN
       allow.motion = FALSE
       IF $class == "Rounds" THEN
-        TOOL toola
+        a = -a
+        shiftz = -12
+        TOOL toolb
       END
       IF $class == "Longs" THEN
+        shiftz = -12
         IF a == 0 THEN
           extrax = -3
         ELSE
@@ -56,58 +61,69 @@
         TOOL toola
       END
       IF $class == "Smalls" THEN
+        shiftz = -12
+        IF a == 0 THEN
+          extrax = -1
+        ELSE
+          extrax = 1
+        END
         TOOL toola
       END
       LMOVE #pre.tare
       OPENI 2
-      LMOVE f + TRANS (y + extrax, x , 50 + shiftz) + RZ (-a)
+      LMOVE f + TRANS (y + extrax, x + extray , 50 + shiftz) + RZ (-a)
       BREAK
       CP OFF
       SPEED speedmm MM/S
       ACCURACY 0
-      LMOVE f + TRANS (y + extrax, x, shiftz) + RZ (-a)
+      LMOVE f + TRANS (y + extrax, x + extray, shiftz) + RZ (-a)
       CLOSEI 2
       BREAK
       TWAIT 0.5
       SPEED speed2
-      LMOVE f + TRANS (y, x + extrax, 50 + shiftz) + RZ (-a)
+      LMOVE f + TRANS (y + extrax, x + extray , 50 + shiftz) + RZ (-a)
       CP ON
       LMOVE #pre.tare
       IF $class == "Rounds" THEN
-        LMOVE #pos.longs.up
+        LMOVE #pos.round.up
         CP OFF
         SPEED speedmm MM/S
         ACCURACY 0
-        LMOVE #pos.longs
+        LMOVE #pos.round
         OPENI 2
         BREAK
         TWAIT 1
+        LMOVE #pos.round.up
+        LMOVE #pik.round.up
+        SPEED speedmm MM/S
+        ACCURACY 0
+        LMOVE #pik.round
         CLOSEI 2
         TWAIT 0.5
         SPEED speed2
         CP ON
-        LMOVE #pos.longs.up
-        LMOVE #longs.machine.up
+        LMOVE #pik.round.up
+        LMOVE #round.machine.up
         CP OFF
         SPEED speedmm MM/S
         ACCURACY 0
-        LMOVE #longs.machine
+        LMOVE #round.machine
         OPENI 2
         TWAIT 1
         SPEED speed2
-        LMOVE #longs.machine.up
+        LMOVE #round.machine.up
         WAIT skip <> 0
         SPEED speedmm MM/S
         ACCURACY 0
-        LMOVE #longs.machine
+        LMOVE #round.machine2
         CLOSEI 2
         TWAIT 0.5
         SPEED speed2
-        LMOVE #longs.machine.up
+        LMOVE #round.machine.up
         IF skip == 1 THEN
-          LMOVE #longs.ok
+          LMOVE #round.ok
         ELSE
-          LMOVE #longs.ng
+          LMOVE #round.ng
         END
         skip = 0
         OPENI 2
@@ -144,8 +160,33 @@
         LMOVE #start
       END
       IF $class == "Smalls" THEN
-        a = 0
-        ;TOOL toola
+        LMOVE #pos.smalls.up
+        LMOVE #pos.smalls
+        OPENI 2
+        BREAK
+        TWAIT 1
+        CLOSEI 2
+        TWAIT 0.5
+        LMOVE #pos.smalls.up
+        LMOVE #smalls.machine.up
+        LMOVE #smalls.machine
+        OPENI 2
+        TWAIT 1
+        LMOVE #smalls.machine.up
+        WAIT skip <> 0
+        LMOVE #smalls.machine
+        CLOSEI 2
+        TWAIT 0.5
+        LMOVE #smalls.machine.up
+        IF skip == 1 THEN
+          LMOVE #smalls.ok
+        ELSE
+          LMOVE #smalls.ng
+        END
+        skip = 0
+        OPENI 2
+        TWAIT 0.5
+        LMOVE #start
       END
       LMOVE #start
     END

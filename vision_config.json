@@ -2,7 +2,7 @@
     "display_box": true,
     "display_pose": true,
     "display_coordinates": true,
-    "display_confidence": true,
+    "display_confidence": false,
     "class_names": [
         "Rounds",
         "Smalls",
@@ -14,7 +14,7 @@
         "Longs": "model_long.pt"
     },
     "minimal_confidences": {
-        "Rounds": 0.75,
+        "Rounds": 0.63,
         "Smalls": 0.75,
         "Longs": 0.75
     },

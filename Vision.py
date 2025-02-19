@@ -1,4 +1,5 @@
 import logging
+import math
 logger = logging.getLogger()
 from ultralytics import YOLO
 import torch
@@ -77,8 +78,12 @@ class Vision:
         logger.info(f"Predicting with {model}")
         objects = []
         results = _model.predict(frame, verbose=False)
+        obj_id = 0
         for result in results:
-            colors = [COLOR_GREEN, COLOR_RED]
+            if model == 'Rounds':
+                colors = [COLOR_RED, COLOR_GREEN]
+            else:
+                colors = [COLOR_GREEN, COLOR_RED]
             object_boxes = result.boxes.data.tolist()
             if self.config['model_type'][model] == 'pose':
                 object_keypoints = result.keypoints.data.tolist()
@@ -112,10 +117,53 @@ class Vision:
                         cv2.circle(frame, (return_data[0], return_data[1]), 10, colors[_class], -1)
                     if self.config['display_coordinates']:
                         cv2.putText(frame, f"({return_data[0]/10}, {return_data[1]/10})", (xmin, ymin - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, colors[_class], 4)
+                
+                # DEBUG
+                if model == "Rounds" and False:
+                    cv2.line(frame, (return_data[0] - 130, return_data[1] - 70), (return_data[0] + 130, return_data[1] - 70), COLOR_PINK, 4)
+                    cv2.line(frame, (return_data[0] - 130, return_data[1] + 70), (return_data[0] + 130, return_data[1] + 70), COLOR_PINK, 4)
+                    angles = (90, 45)
+                    xx = 0
+                    for angle in angles:
+                        colors = (COLOR_MAGENTA, COLOR_LIGHT_GREEN, COLOR_ORANGE, COLOR_RED, COLOR_LIGHT_BLUE, COLOR_BROWN)
+                        # Get new coordinates
+                        x0 = return_data[0]
+                        y0 = return_data[1]
+                        glinex11, gliney11 = self.__rotate_point((x0, y0), (return_data[0] - 130, return_data[1] - 70), angle)
+                        glinex12, gliney12 = self.__rotate_point((x0, y0), (return_data[0] + 130, return_data[1] - 70), angle)
+                        glinex21, gliney21 = self.__rotate_point((x0, y0), (return_data[0] - 130, return_data[1] + 70), angle)
+                        glinex22, gliney22 = self.__rotate_point((x0, y0), (return_data[0] + 130, return_data[1] + 70), angle)
+                        cv2.line(frame, (int(glinex11), int(gliney11)), (int(glinex12), int(gliney12)), colors[xx], 4)
+                        cv2.line(frame, (int(glinex21), int(gliney21)), (int(glinex22), int(gliney22)), colors[xx], 4)
+                        xx = xx + 1
+                        # cv2.line(frame, (return_data[0] - 130, return_data[1] - 70), (return_data[0] + 130, return_data[1] - 70), COLOR_PINK, 4)
+                        # cv2.line(frame, (return_data[0] - 130, return_data[1] + 70), (return_data[0] + 130, return_data[1] + 70), COLOR_PINK, 4)
+
+        #             gripper_lines = (
+        #     (x0*10 - gl2, y0*10 - gt2, x0*10 + gl2, y0*10 - gt2),
+        #     (x0*10 - gl2, y0*10 + gt2, x0*10 + gl2, y0*10 + gt2)
+        # )
 
                 return_data = [coord / 10 for coord in return_data]
-                objects.append((model, _class, confidence, return_data))
+                objects.append((model, _class, confidence, return_data, (xmin, ymin, xmax, ymax), obj_id))
+                obj_id = obj_id + 1
         return objects
+
+    def __rotate_point(self, center, point, angle):
+        cx, cy = center
+        px, py = point
+        # Convert angle to radians
+        angle_rad = angle * (3.141592653589793 / 180.0)
+        # Translate point to origin
+        temp_x = px - cx
+        temp_y = py - cy
+        # Rotate point
+        rotated_x = temp_x * math.cos(angle_rad) - temp_y * math.sin(angle_rad)
+        rotated_y = temp_x * math.sin(angle_rad) + temp_y * math.cos(angle_rad)
+        # Translate point back
+        new_x = rotated_x + cx
+        new_y = rotated_y + cy
+        return new_x, new_y
 
 if __name__ == '__main__':
     logging.basicConfig()

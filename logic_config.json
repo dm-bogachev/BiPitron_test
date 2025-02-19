@@ -1,0 +1,13 @@
+{
+    "round_gripper_thickness": 14,
+    "round_gripper_length": 28,
+    "check_angles": [
+        90,
+        -45,
+        45,
+        -60,
+        60,
+        -30,
+        30
+    ]
+}

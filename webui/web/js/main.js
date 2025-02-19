@@ -5,11 +5,12 @@ const LOGIC_API_URL = 'http://localhost:8000/logic';
 
 // Добавьте эту функцию в начало файла после объявления констант
 function showNotification(message, type = 'info') {
+    // Show popup notification
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     notification.textContent = message;
     
-    // Стили для уведомления
+    // Styles for popup notification
     notification.style.position = 'fixed';
     notification.style.top = '20px';
     notification.style.right = '20px';
@@ -23,7 +24,32 @@ function showNotification(message, type = 'info') {
     
     document.body.appendChild(notification);
     
-    // Автоматически удаляем уведомление через 3 секунды
+    // Add to log container
+    const logMessages = document.getElementById('logMessages');
+    const logEntry = document.createElement('div');
+    logEntry.className = `log-message log-${type}`;
+    
+    // Add timestamp
+    const timestamp = new Date().toLocaleTimeString();
+    const timestampSpan = document.createElement('span');
+    timestampSpan.className = 'log-timestamp';
+    timestampSpan.textContent = `[${timestamp}]`;
+    
+    // Add message
+    const messageSpan = document.createElement('span');
+    messageSpan.textContent = ` ${message}`;
+    
+    logEntry.appendChild(timestampSpan);
+    logEntry.appendChild(messageSpan);
+    
+    // Add to top of log
+    if (logMessages.firstChild) {
+        logMessages.insertBefore(logEntry, logMessages.firstChild);
+    } else {
+        logMessages.appendChild(logEntry);
+    }
+    
+    // Remove popup notification after delay
     setTimeout(() => {
         notification.style.opacity = '0';
         setTimeout(() => {
@@ -62,68 +88,6 @@ async function loadCurrentModel() {
         console.error('Error loading current model:', error);
     }
 }
-
-document.getElementById('sendCommand').addEventListener('click', async () => {
-    console.log('Sending command to robot...');
-    try {
-        const response = await fetch(LOGIC_API_URL + '/next_object', {
-            method: 'GET',
-            headers: {
-                'accept': 'application/json',
-            }
-        });
-        console.log(response);
-        if (response.ok) {
-            const data = await response.json();
-            console.log('Next object:', data);
-            const [class_id, , , [x, y, a]] = data;
-            const robotResponse = await fetch(`${ROBOT_API_URL}/pick?class_id=${class_id}&x=${x}&y=${y}&a=${a}`, {
-            method: 'GET',
-            headers: {
-                'accept': 'application/json',
-            }
-            });
-
-            if (robotResponse.ok) {
-                showNotification('Команда успешно отправлена роботу');
-            } else {
-                showNotification('Ошибка при отправке команды роботу', 'error');
-            }
-        } else {
-            showNotification('Ошибка при получении следующего объекта', 'error');
-        }
-    } catch (error) {
-        console.error('Error sending command to robot:', error);
-        showNotification('Ошибка при отправке команды роботу', 'error');
-    }
-});
-
-document.getElementById('applyModel').addEventListener('click', async () => {
-    const selectedModel = document.getElementById('modelSelect').value;
-    if (!selectedModel) {
-        showNotification('Пожалуйста, выберите модель', 'error');
-        return;
-    }
-
-    try {
-        const response = await fetch(`${VISION_API_URL}/set_model?model=${selectedModel}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-        
-        if (response.ok) {
-            document.getElementById('currentModel').textContent = selectedModel;
-            await loadCurrentConfidence(); // Update confidence after model change
-        } else {
-            showNotification('Ошибка при применении модели', 'error');
-        }
-    } catch (error) {
-        console.error('Error applying model:', error);
-        showNotification('Ошибка при применении модели', 'error');
-    }
-});
 
 async function loadCurrentExposure() {
     try {
@@ -192,7 +156,109 @@ async function loadObjectList() {
     }
 }
 
-// document.addEventListener('DOMContentLoaded', loadObjectList);
+async function loadDisplaySettings() {
+    try {
+        const displayBoxResponse = await fetch(VISION_API_URL + '/get_display_box', {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+            }
+        });
+        const displayPoseResponse = await fetch(VISION_API_URL + '/get_display_pose', {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+            }
+        });
+        const displayCoordinatesResponse = await fetch(VISION_API_URL + '/get_display_coordinates', {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+            }
+        });
+        const displayConfidenceResponse = await fetch(VISION_API_URL + '/get_display_confidence', {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+            }
+        });
+        const displayBoxData = await displayBoxResponse.json();
+        const displayPoseData = await displayPoseResponse.json();
+        const displayCoordinatesData = await displayCoordinatesResponse.json();
+        const displayConfidenceData = await displayConfidenceResponse.json();
+
+        console.log('Display settings:', displayBoxData, displayPoseData, displayCoordinatesData, displayConfidenceData);
+
+        document.getElementById('displayBox').checked = displayBoxData.display_box;
+        document.getElementById('displayPose').checked = displayPoseData.display_pose;
+        document.getElementById('displayCoordinates').checked = displayCoordinatesData.display_coordinates;
+        document.getElementById('displayConfidence').checked = displayConfidenceData.display_confidence;
+    } catch (error) {
+        console.error('Error loading display settings:', error);
+    }
+}
+
+document.getElementById('sendCommand').addEventListener('click', async () => {
+    console.log('Sending command to robot...');
+    try {
+        const response = await fetch(LOGIC_API_URL + '/next_object', {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+            }
+        });
+        console.log(response);
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Next object:', data);
+            const [class_id, , , [x, y, a]] = data;
+            const robotResponse = await fetch(`${ROBOT_API_URL}/pick?class_id=${class_id}&x=${x}&y=${y}&a=${a}`, {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+            }
+            });
+
+            if (robotResponse.ok) {
+                showNotification(`Команда успешно отправлена роботу: x=${x}, y=${y}, a=${a}`);
+            } else {
+                showNotification('Ошибка при отправке команды роботу', 'error');
+            }
+        } else {
+            showNotification('Ошибка при получении следующего объекта', 'error');
+        }
+    } catch (error) {
+        console.error('Error sending command to robot:', error);
+        showNotification('Ошибка при отправке команды роботу', 'error');
+    }
+});
+
+document.getElementById('applyModel').addEventListener('click', async () => {
+    const selectedModel = document.getElementById('modelSelect').value;
+    if (!selectedModel) {
+        showNotification('Пожалуйста, выберите модель', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${VISION_API_URL}/set_model?model=${selectedModel}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        if (response.ok) {
+            document.getElementById('currentModel').textContent = selectedModel;
+            await loadCurrentConfidence(); // Update confidence after model change
+        } else {
+            showNotification('Ошибка при применении модели', 'error');
+        }
+    } catch (error) {
+        console.error('Error applying model:', error);
+        showNotification('Ошибка при применении модели', 'error');
+    }
+});
 
 document.getElementById('getOKResponse').addEventListener('click', async () => {
     try {
@@ -263,9 +329,7 @@ document.getElementById('applyConfidence').addEventListener('click', async () =>
     }
 });
 
-
-document.getElementById('calibrateCamera').addEventListener('click', calibrateMarkers);
-async function calibrateMarkers() {
+document.getElementById('calibrateCamera').addEventListener('click', async () => {
     try {
         const response = await fetch(FRAMEGRABBER_API_URL + '/calibrate', {
             method: 'GET',
@@ -284,7 +348,7 @@ async function calibrateMarkers() {
         console.error('Error calibrating markers:', error);
         showNotification('Ошибка при калибровке маркеров', 'error');
     }
-}
+});
 
 document.getElementById('resetCamera').addEventListener('click', async () => {
     try {
@@ -305,9 +369,6 @@ document.getElementById('resetCamera').addEventListener('click', async () => {
         showNotification('Ошибка при сбросе калибровки', 'error');
     }
 });
-
-
-//document.getElementById('calibrateMarkers').addEventListener('click', calibrateMarkers);
 
 document.getElementById('applyExposure').addEventListener('click', async () => {
     const exposureValue = document.getElementById('exposureValue').value;
@@ -336,49 +397,6 @@ document.getElementById('applyExposure').addEventListener('click', async () => {
         showNotification('Ошибка при применении экспозиции', 'error');
     }
 });
-
-
-async function loadDisplaySettings() {
-    try {
-        const displayBoxResponse = await fetch(VISION_API_URL + '/get_display_box', {
-            method: 'GET',
-            headers: {
-                'accept': 'application/json',
-            }
-        });
-        const displayPoseResponse = await fetch(VISION_API_URL + '/get_display_pose', {
-            method: 'GET',
-            headers: {
-                'accept': 'application/json',
-            }
-        });
-        const displayCoordinatesResponse = await fetch(VISION_API_URL + '/get_display_coordinates', {
-            method: 'GET',
-            headers: {
-                'accept': 'application/json',
-            }
-        });
-        const displayConfidenceResponse = await fetch(VISION_API_URL + '/get_display_confidence', {
-            method: 'GET',
-            headers: {
-                'accept': 'application/json',
-            }
-        });
-        const displayBoxData = await displayBoxResponse.json();
-        const displayPoseData = await displayPoseResponse.json();
-        const displayCoordinatesData = await displayCoordinatesResponse.json();
-        const displayConfidenceData = await displayConfidenceResponse.json();
-
-        console.log('Display settings:', displayBoxData, displayPoseData, displayCoordinatesData, displayConfidenceData);
-
-        document.getElementById('displayBox').checked = displayBoxData.display_box;
-        document.getElementById('displayPose').checked = displayPoseData.display_pose;
-        document.getElementById('displayCoordinates').checked = displayCoordinatesData.display_coordinates;
-        document.getElementById('displayConfidence').checked = displayConfidenceData.display_confidence;
-    } catch (error) {
-        console.error('Error loading display settings:', error);
-    }
-}
 
 document.getElementById('displayBox').addEventListener('change', async (event) => {
     try {
@@ -464,9 +482,8 @@ document.addEventListener('DOMContentLoaded', loadDisplaySettings);
 document.addEventListener('DOMContentLoaded', loadCurrentModel);
 document.addEventListener('DOMContentLoaded', loadCurrentExposure);
 document.addEventListener('DOMContentLoaded', loadCurrentConfidence);
-
-// Fetch models when page loads
 document.addEventListener('DOMContentLoaded', fetchModels);
+
 setInterval(() => {
     loadObjectList();
     const robot_status = document.querySelector('.robot-status .status-dot');
