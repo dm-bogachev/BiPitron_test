@@ -54,18 +54,18 @@
       IF $class == "Longs" THEN
         shiftz = -12
         IF a == 0 THEN
-          extrax = -3
+          extrax = -4
         ELSE
-          extrax = 5
+          extrax = 3
         END
         TOOL toola
       END
       IF $class == "Smalls" THEN
         shiftz = -12
         IF a == 0 THEN
-          extrax = -1
-        ELSE
           extrax = 1
+        ELSE
+          extrax = -1
         END
         TOOL toola
       END
