@@ -22,6 +22,8 @@ class FrameGrabberConfig:
             self.__config['exposure'] = 10000
             self.__config['markers_x_distance'] = 4100
             self.__config['markers_y_distance'] = 2860
+            self.__config['camera_type'] = 'hik'
+            self.__config['webcamera_address'] = 0
             self.__save_config()
     
     def __getitem__(self, key):

@@ -2,6 +2,7 @@ from HikCamera.HikCamera import *
 from Colors import *
 from ArucoDetector import *
 from FrameGrabberConfig import *
+from WebCamera import *
 
 import logging
 logger = logging.getLogger()
@@ -20,7 +21,10 @@ class FrameGrabber:
             pass
 
         logger.info('Initializing camera')
-        self.camera = Camera()
+        if self.config['camera_type'] == 'hik':
+            self.camera = Camera()
+        else:
+            self.camera = Webcamera(self.config['webcamera_address'])
         self.camera.open()
         self.camera.set_exposure(self.config['exposure'])
 
