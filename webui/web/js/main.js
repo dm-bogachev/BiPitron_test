@@ -1,7 +1,8 @@
-const ROBOT_API_URL = 'http://localhost:8000/robot';
-const VISION_API_URL = 'http://localhost:8000/vision';
-const FRAMEGRABBER_API_URL = 'http://localhost:8000/framegrabber';
-const LOGIC_API_URL = 'http://localhost:8000/logic';
+const HOST = window.location.hostname;
+const ROBOT_API_URL = `http://${HOST}:8000/robot`;
+const VISION_API_URL = `http://${HOST}:8000/vision`;
+const FRAMEGRABBER_API_URL = `http://${HOST}:8000/framegrabber`;
+const LOGIC_API_URL = `http://${HOST}:8000/logic`;
 
 // Добавьте эту функцию в начало файла после объявления констант
 function showNotification(message, type = 'info') {
